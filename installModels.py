@@ -6,6 +6,7 @@ from sentence_transformers import SentenceTransformer
 
 
 load_dotenv()
+# Define paths and model names
 hf_token = os.getenv("HF_TOKEN", "").strip()
 
 llm_model_name = "meta-llama/Llama-3.2-3B-Instruct"
@@ -24,6 +25,7 @@ def download_model():
         print("Models already exist. Skipping download.")
         return
 
+    # Download the LLM and embedding models from Hugging Face
     try:
         snapshot_download(repo_id=llm_model_name, local_dir=llm_path, token=hf_token)
         embedding_model = SentenceTransformer(embedding_model_name)    
