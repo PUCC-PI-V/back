@@ -1,206 +1,181 @@
-# Projeto Integrador V - API de IA (RAG)
+# API de IA + Aviso de Orcamento por E-mail
 
-Este projeto é uma API em **Python + FastAPI** que implementa um pipeline de **RAG (Retrieval-Augmented Generation)**:
-1. Busca contexto em um banco vetorial (**ChromaDB**).
-2. Monta um prompt com o contexto recuperado.
-3. Gera a resposta com um modelo de linguagem (**Transformers**).
+Backend em **Python + FastAPI** com dois blocos principais:
+- **IA (RAG)** para responder perguntas com contexto do ChromaDB.
+- **E-mail** para enviar aviso de novo orcamento no layout da ViboraInk.
 
-## Rotas (endpoints)
+---
+
+## Endpoints
 
 ### `GET /status`
-Retorna uma mensagem confirmando que o backend está em execução.
+Retorna que a API esta no ar.
 
 ### `POST /ia/prompt`
-Gera uma resposta a partir de uma pergunta do usuário.
+Recebe a pergunta do usuario e retorna resposta do pipeline RAG.
 
-Corpo (JSON):
+Exemplo de body:
 ```json
 {
-  "input": "sua pergunta aqui"
+  "input": "Qual e a politica de reembolso?"
 }
 ```
 
-Opcionalmente, você também pode enviar:
+Tambem aceita:
 ```json
 {
-  "prompt": "sua pergunta aqui"
+  "prompt": "Qual e a politica de reembolso?"
 }
 ```
 
-Resposta (JSON):
+Resposta:
 ```json
 {
-  "answer": "resposta gerada..."
+  "answer": "..."
 }
 ```
 
-## Como funciona o roteador (Router)
+---
 
-O projeto usa o padrão do FastAPI:
+## Arquitetura atual (coerente com o codigo)
 
-### `index.py` (montagem do app)
-- Cria a aplicação:
-  - `app = FastAPI()`
-- Define a rota de saúde:
-  - `@app.get("/status")`
-- Registra o módulo de rotas da IA:
-  - `app.include_router(iaRoute.router, prefix="/ia")`
+### `controllers/iaControllers/iaController.py`
+O controller do endpoint `/ia/prompt`:
+1. Le o JSON da requisicao.
+2. Extrai a pergunta de `input` ou `prompt`.
+3. Chama `iaService.load_resources()`.
+4. Valida pergunta vazia (retorna 400).
+5. Chama `iaService.rag_chain(...)`.
+6. Retorna `{"answer": answer}`.
 
-Isso significa que qualquer rota definida no `iaRoute.router` ganha automaticamente o prefixo **`/ia`**.
+Erros inesperados retornam `HTTPException 500`.
 
-### `routes/iaRoutes/iaRoute.py` (rotas do módulo)
-- Cria um roteador:
-  - `router = APIRouter()`
-- Define o endpoint:
-  - `@router.post("/prompt")`
-- A função do endpoint apenas encaminha a requisição:
-  - `return await iaController.prompt_index(request)`
+### `services/iaServices/iaService.py`
+Service com toda logica de IA:
+- `load_resources()`: abre modelos locais + ChromaDB.
+- `truncate_context(...)`: limita tamanho do contexto.
+- `build_prompt(...)`: cria mensagens `system`/`user`.
+- `build_response(...)`: aplica chat template e gera resposta.
+- `rag_chain(...)`: consulta ChromaDB e chama geracao.
 
-Assim, a rota final vira: **`POST /ia/prompt`**.
+Esse service usa:
+- `MODEL_DIR` para o LLM local.
+- `EMBEDDINGS_DIR` para embeddings locais.
+- `CHROMA_DB_DIR` para persistencia do banco vetorial.
+- `COLLECTION_NAME` para selecionar colecao correta.
 
-## Instalação e execução
+### `services/emailServices/emailService.py`
+Service de envio de e-mail via Gmail API.
 
-### 1) Instale as dependências
-Com Python instalado (recomendado 3.10+), instale:
+Funcao principal:
+```python
+send_email(
+    tattoo_description: str = "",
+    form_link: str = "",
+    client_name: str = "",
+    subject: str = "Novo aviso de orcamento - ViboraInk",
+)
+```
+
+O que ela faz:
+- autentica no Gmail com OAuth (`credentials.json` + `token.json`);
+- monta e-mail em texto simples + HTML estilizado;
+- inclui imagem inline (`services/emailServices/assets/emailImage.jpg`);
+- envia para `EMAIL_TO`, com remetente `EMAIL_FROM`.
+
+---
+
+## Como configurar o projeto
+
+### 1) Instalar dependencias
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2) Configure variáveis de ambiente (`.env`)
-O código usa `load_dotenv()`. Crie um arquivo `.env` na raiz `c:\back` com, por exemplo:
+### 2) Criar `.env` na raiz do projeto
+Exemplo:
 ```env
 PORT=8000
-HF_TOKEN=SEU_TOKEN_HUGGINGFACE (apenas se for baixar modelos)
+HF_TOKEN=SEU_TOKEN_HUGGINGFACE
 
-# (opcional) diretos customizados:
-# IMPORTANTE: `installModels.py` salva embeddings em `./models/...`
-# então defina `EMBEDDINGS_DIR` apontando para essa pasta (para bater com o `iaController.py`).
-#
-# Também ajuste `COLLECTION_NAME` para ser o MESMO valor entre `iaController.py` e `downloadDatas.py`.
-#
-# Exemplo (recomendado):
+EMAIL_TO=destinatario@exemplo.com
+EMAIL_FROM=seu_email_gmail@exemplo.com
+
+# Opcional (se quiser customizar caminhos)
 # EMBEDDINGS_DIR=c:\back\models\multilingual-e5-small
 # MODEL_DIR=c:\back\models\llama-3.2-3b-instruct
 # CHROMA_DB_DIR=c:\back\database\vectorDatabase\chroma_db
 # COLLECTION_NAME=database
-# SOURCE_DATA_PATH=c:\back\database\vectorDatabase\source_data.txt
 ```
 
-### 3) Baixe os modelos localmente (necessário)
-O controlador carrega modelos com `local_files_only=True`, então os arquivos precisam existir em disco.
-
-Execute:
+### 3) Baixar modelos locais (IA)
 ```bash
 python installModels.py
 ```
 
-Esse script:
-- Baixa o LLM `meta-llama/Llama-3.2-3B-Instruct`
-- Baixa o modelo de embeddings `intfloat/multilingual-e5-small`
-- Salva em:
-  - `./models/llama-3.2-3b-instruct`
-  - `./models/multilingual-e5-small`
-
-### 4) Monte o banco vetorial (ChromaDB)
-Para o RAG funcionar, é preciso criar/popular a coleção no ChromaDB.
-
-Execute:
+### 4) Popular base vetorial (RAG)
 ```bash
 python database/vectorDatabase/downloadDatas.py
 ```
 
-Esse script:
-- Lê `SOURCE_DATA_PATH` (default: `database/vectorDatabase/source_data.txt`)
-- Divide o texto em entradas considerando perguntas que terminam com `?`
-- Cria um `document` por entrada contendo:
-  - `passage: <pergunta>\n<resposta>`
-- Cria uma coleção no ChromaDB com embeddings do modelo local
-- Apaga a coleção anterior com o mesmo nome (via `delete_collection`)
-
-Repare que `downloadDatas.py` precisa usar os mesmos valores de `EMBEDDINGS_DIR` e `COLLECTION_NAME` que o `iaController.py`, senão o endpoint vai consultar uma base diferente.
-
-### 5) Rode a API
-Opção A (direto):
+### 5) Rodar a API
 ```bash
 python index.py
 ```
-
-Opção B (uvicorn):
+ou
 ```bash
 uvicorn index:app --reload --port 8000
 ```
 
-## Fluxo interno (funções principais)
+---
 
-### `controllers/iaControllers/iaController.py`
+## Gmail API: `credentials.json` e `token.json` (importante)
 
-#### `load_resources()`
-Carrega todos os recursos necessários:
-- Verifica se as pastas do modelo e embeddings existem (via `ensure_dir`)
-- Configura embeddings:
-  - `SentenceTransformerEmbeddingFunction(model_name=EMBEDDINGS_DIR)`
-- Inicializa/abre o ChromaDB:
-  - `chromadb.PersistentClient(path=CHROMA_DB_DIR)`
-  - `client.get_or_create_collection(COLLECTION_NAME, embedding_function=...)`
-- Carrega tokenizer e modelo LLM localmente:
-  - `AutoTokenizer.from_pretrained(MODEL_DIR, local_files_only=True)`
-  - `AutoModelForCausalLM.from_pretrained(MODEL_DIR, local_files_only=True)`
-- Se houver GPU (`torch.cuda.is_available()`), move o modelo para `cuda`.
+Para o `emailService.py` funcionar, o fluxo OAuth do Google precisa estar correto.
 
-#### `truncate_context(context, tokenizer, max_tokens=MAX_CONTEXT_TOKENS)`
-Reduce o tamanho do contexto recuperado para caber no limite de tokens do prompt.
+### O que e `credentials.json`
+- Arquivo baixado do **Google Cloud Console**.
+- Contem `client_id` e `client_secret` do app OAuth.
+- Deve ficar na raiz do projeto (mesmo nivel do `index.py`, para bater com `from_client_secrets_file('credentials.json', ...)`).
 
-#### `build_prompt(context, input)`
-Monta a lista de mensagens (formato chat) para o LLM:
-- `system`: instruções para responder **apenas** com base no contexto
-- `user`: inclui `Contexto` + `Pergunta`
+### O que e `token.json`
+- Arquivo gerado automaticamente no **primeiro login**.
+- Guarda `access_token` e `refresh_token` do usuario autorizado.
+- Nas proximas execucoes, o codigo reutiliza esse arquivo e tenta renovar token sem abrir navegador.
 
-#### `build_response(question, context, tokenizer, model)`
-1. Trunca o contexto
-2. Constrói o texto final do prompt via `tokenizer.apply_chat_template(...)`
-3. Tokeniza e envia para o device do modelo (`model.device`)
-4. Gera a resposta com `model.generate(...)` usando:
-   - `do_sample=False` (geração determinística)
-   - `max_new_tokens=MAX_NEW_TOKENS`
-5. Faz decode apenas da parte gerada (remove o prompt do começo).
+### Fluxo de primeira execucao
+1. Voce chama `send_email(...)`.
+2. Se `token.json` nao existe, abre navegador (`flow.run_local_server(...)`).
+3. Voce faz login na conta Google e concede permissao `gmail.send`.
+4. O sistema grava `token.json`.
+5. A partir dai, o envio funciona sem login manual (enquanto o refresh token for valido).
 
-Se nada for gerado, retorna:
-`"Nao consegui gerar uma resposta com base no contexto."`
+### Quando apagar o `token.json`
+Apague e gere de novo quando:
+- mudar o escopo (`SCOPES`);
+- trocar `credentials.json`;
+- mudar de conta Google;
+- token ficar invalido/revogado.
 
-#### `rag_chain(question, tokenizer, model, collection, n_results=QUERY)`
-Implementa o “R”:
-- Consulta o ChromaDB com:
-  - `collection.query(query_texts=[question], n_results=n_results)`
-- Junta os `documents` retornados como `context`
-- Retorna o resultado de `build_response(...)`.
+### Checklist rapido para nao falhar envio
+- `credentials.json` valido na raiz.
+- `EMAIL_FROM` e `EMAIL_TO` definidos no `.env`.
+- primeira autorizacao concluida no navegador.
+- permissao Gmail API habilitada no projeto do Google Cloud.
 
-#### `prompt_index(request: Request)` (endpoint lógico)
-Função acionada pelo roteador do endpoint `POST /ia/prompt`:
-- Lê JSON da requisição e extrai `input` (ou `prompt`)
-- Carrega recursos (`load_resources()`)
-- Valida se a pergunta não está vazia
-- Chama `rag_chain(...)`
-- Retorna `{"answer": answer}`
-- Em erros, retorna `HTTPException` com status 400/500.
+---
 
-### `installModels.py`
-- `download_model()`: baixa e salva modelos via Hugging Face.
-- Exige `HF_TOKEN` (se o download for necessário).
-
-### `database/vectorDatabase/downloadDatas.py`
-- `parse_faq_entries(text)`: cria entradas a partir do arquivo fonte
-- Fluxo principal: cria/popula o ChromaDB usando embeddings locais.
-
-## Exemplo de chamada (PowerShell)
-
+## Exemplo de chamada do endpoint IA (PowerShell)
 ```powershell
 Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/ia/prompt" -ContentType "application/json" -Body '{
-  "input": "Qual é a política de reembolso?"
+  "input": "Qual e a politica de reembolso?"
 }'
 ```
 
-## Observações importantes
-- O modelo LLM e embeddings são carregados **localmente** (`local_files_only=True`): primeiro rode `installModels.py`.
-- A API tenta usar GPU quando disponível, mas funciona em CPU (pode ficar mais lento).
-- O contexto vem do ChromaDB: se a base vetorial não existir/estiver vazia, a resposta tende a ser “Nao sei” (por causa do `system prompt`).
+---
+
+## Observacoes
+- O carregamento dos modelos de IA e local (`local_files_only=True`).
+- Se nao houver GPU, funciona em CPU (mais lento).
+- O `.gitignore` ja ignora `*.json`, entao `credentials.json` e `token.json` nao devem ir para o repositorio.
 
