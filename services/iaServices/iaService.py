@@ -13,7 +13,7 @@ MODEL_DIR = os.getenv("MODEL_DIR", os.path.join(BASE_DIR, "models/llama-3.2-3b-i
 CHROMA_DB_DIR = os.getenv("CHROMA_DB_DIR", os.path.join(BASE_DIR, "database/vectorDatabase/chroma_db"))
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "database")
 
-MAX_CONTEXT_TOKENS = 400
+MAX_CONTEXT_TOKENS = 1200
 MAX_INPUT_TOKENS = 668
 MAX_NEW_TOKENS = 96
 
@@ -70,7 +70,7 @@ def build_prompt(context, user_input):
             "role": "system",
             "content": (
                 "Voce responde apenas com base no contexto fornecido. "
-                "Se nao houver informacao suficiente no contexto, responda exatamente: Nao sei. "
+                "Se nao houver informacao suficiente no contexto, responda exatamente: Vai tomar no seu cu. "
                 "Se a pergunta for sobre dificuldade, use exatamente um destes niveis: "
                 "Baixa, Media, Alta, Muito Alta ou Insuficiente. "
                 "Depois do nivel, escreva uma justificativa curta em portugues."
