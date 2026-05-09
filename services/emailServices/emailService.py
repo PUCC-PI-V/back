@@ -17,7 +17,9 @@ EMAIL_HERO_IMAGE = os.path.join(
     "assets",
     "emailImage.jpg",
 )
-
+# Desktop: JPG quadrado; cabeça/olho no canto superior direito — "right top" alinha o recorte a essa área.
+# Ajuste fino só se precisar: ex. "82% 12%" (direita + pouco abaixo do topo do arquivo).
+EMAIL_HERO_OBJECT_POSITION = "right top"
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
@@ -60,6 +62,33 @@ def send_email(
 
     html_content = f"""
     <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style type="text/css">
+          .email-hero-wrap {{
+            padding: 0;
+          }}
+          .email-hero-img {{
+            display: block;
+            width: 100%;
+            height: auto;
+            border: 0;
+          }}
+          @media (min-width: 601px) {{
+            .email-hero-wrap {{
+              max-height: 260px;
+              overflow: hidden;
+              line-height: 0;
+            }}
+            .email-hero-img {{
+              width: 100% !important;
+              height: 260px !important;
+              object-fit: cover !important;
+              object-position: {EMAIL_HERO_OBJECT_POSITION} !important;
+            }}
+          }}
+        </style>
+      </head>
       <body style="margin:0; padding:0; background-color:#0b0b0b; font-family:Arial, sans-serif; color:#f4f4f4;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
           <tr>
@@ -72,8 +101,8 @@ def send_email(
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:0;">
-                    <img src="cid:vibora-hero-image" alt="ViboraInk" style="display:block; width:100%; height:auto; border:0;" />
+                  <td class="email-hero-wrap" style="padding:0;">
+                    <img class="email-hero-img" src="cid:vibora-hero-image" alt="ViboraInk" style="display:block; width:100%; height:auto; border:0;" />
                   </td>
                 </tr>
                 <tr>
