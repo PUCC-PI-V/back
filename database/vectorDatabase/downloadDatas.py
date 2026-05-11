@@ -58,39 +58,41 @@ def parse_faq_entries(text: str):
 
     return entries
 
-#get the paths from environment directory 
-ensure_local_path(EMBEDDINGS_DIR, "modelo de embeddings")
+def download_datas():
 
-huggingface_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name=EMBEDDINGS_DIR
-)
+    #get the paths from environment directory 
+    ensure_local_path(EMBEDDINGS_DIR, "modelo de embeddings")
 
-# Initialize ChromaDB client and create collection
-client = chromadb.PersistentClient(path=CHROMADB_DIR)
-
-try:
-    client.delete_collection(COLLECTION_NAME)
-except Exception:
-    pass
-
-collection = client.get_or_create_collection(
-    COLLECTION_NAME,
-    embedding_function=huggingface_ef,
-)
-
-# Read the source data and parse it into entries
-with open(SOURCE_DATA_PATH, "r", encoding="utf-8") as file:
-    books = file.read()
-
-# Break the source data into entries and add them to the ChromaDB collection
-entries = parse_faq_entries(books)
-
-# Add each entry to the collection with the question as metadata and the document as the content
-for i, entry in enumerate(entries):
-    collection.add(
-        documents=[entry["document"]],
-        ids=[str(i)],
-        metadatas=[{"question": entry["question"]}],
+    huggingface_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+        model_name=EMBEDDINGS_DIR
     )
 
-print(f"{len(entries)} entradas adicionadas na colecao {COLLECTION_NAME}.")
+    # Initialize ChromaDB client and create collection
+    client = chromadb.PersistentClient(path=CHROMADB_DIR)
+
+    try:
+        client.delete_collection(COLLECTION_NAME)
+    except Exception:
+        pass
+
+    collection = client.get_or_create_collection(
+        COLLECTION_NAME,
+        embedding_function=huggingface_ef,
+    )
+
+    # Read the source data and parse it into entries
+    with open(SOURCE_DATA_PATH, "r", encoding="utf-8") as file:
+        books = file.read()
+
+    # Break the source data into entries and add them to the ChromaDB collection
+    entries = parse_faq_entries(books)
+
+    # Add each entry to the collection with the question as metadata and the document as the content
+    for i, entry in enumerate(entries):
+        collection.add(
+            documents=[entry["document"]],
+            ids=[str(i)],
+            metadatas=[{"question": entry["question"]}],
+        )
+
+    print(f"{len(entries)} entradas adicionadas na colecao {COLLECTION_NAME}.")
