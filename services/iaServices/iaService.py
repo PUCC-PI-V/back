@@ -70,9 +70,11 @@ def build_prompt(context, user_input):
             "role": "system",
             "content": (
                 "Voce responde apenas com base no contexto fornecido. "
-                "Se nao houver informacao suficiente no contexto, responda exatamente: Vai tomar no seu cu. "
+                "Se nao houver informacao suficiente no contexto, responda exatamente: Não sei."
+                "Caso a pergunta do usuario não seja sobre tatuagem, responda: Não sei."
                 "Se a pergunta for sobre dificuldade, use exatamente um destes niveis: "
                 "Baixa, Media, Alta, Muito Alta ou Insuficiente. "
+                "as respostas devem seguir o padrao: Nivel: <nivel> - Justificativa: <justificativa>"
                 "Depois do nivel, escreva uma justificativa curta em portugues."
             ),
         },

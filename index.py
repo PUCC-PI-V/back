@@ -3,12 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 import uvicorn
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from routes.iaRoutes import iaRoute
+from utils.installModels.autoInstallModels import autoInstallModels
 
 app = FastAPI()
+app.state.limiter = iaRoute.limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 load_dotenv()
+
 # Get the port from environment variable, default to 8000 if not set
 PORT = int(os.getenv("PORT", 8000))
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost", "http://localhost:8080"],
@@ -26,4 +34,5 @@ app.include_router(iaRoute.router, prefix="/ia")
 
 
 if __name__ == "__main__":
+    autoInstallModels()
     uvicorn.run(app, host="127.0.0.1", port=PORT)
