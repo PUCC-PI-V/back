@@ -3,3 +3,4 @@
 .env
 **/chroma_db
 *.json
+**/venv
