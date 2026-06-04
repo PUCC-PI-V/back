@@ -6,6 +6,8 @@ import uvicorn
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from routes.iaRoutes import iaRoute
+from routes.loginRoute import loginRoute
+from database.prisma.client import connect_db, disconnect_db
 from utils.installModels.autoInstallModels import autoInstallModels
 
 app = FastAPI()
@@ -31,6 +33,17 @@ async def root():
 
 
 app.include_router(iaRoute.router, prefix="/ia")
+app.include_router(loginRoute.router, prefix="/admin")
+
+
+@app.on_event("startup")
+async def startup():
+    await connect_db()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await disconnect_db()
 
 
 if __name__ == "__main__":

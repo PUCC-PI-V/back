@@ -1,30 +1,37 @@
 enum Tamanho {
     Pequena
-    Média
+    Media   @map("Média")
     Grande
 }
 enum Area {
-    Braço
-    Antebraço
+    Braco       @map("Braço")
+    Antebraco   @map("Antebraço")
     Costela
     Cotovelo
     Barriga
     Panturrilha
     Cotas
-    Cabeça
+    Cabeca      @map("Cabeça")
     Perna
-    Mão
+    Mao         @map("Mão")
     Peitoral
 }
 
 datasource db {
     provider = "mysql"
+    url      = env("DATABASE_URL")
 }
 
 generator db {
-  provider = "prisma-client-py"
-  engineType = "binary"
-  config_option = "value"
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+model User {
+    id       Int    @id @default(autoincrement())
+    email    String @unique
+    password String
 }
 
 model Descricao {
