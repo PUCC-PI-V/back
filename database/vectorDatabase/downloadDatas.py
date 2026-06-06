@@ -16,7 +16,11 @@ SOURCE_DATA_PATH = os.getenv("SOURCE_DATA_PATH", os.path.join(BASE_DIR, "source_
 # Function to ensure the local path exists
 def ensure_local_path(path: str, label: str) -> None:
     if not os.path.isdir(path):
-        raise FileNotFoundError(f"O caminho de {label} nao foi encontrado: {path}")
+        return
+    if "/" in path and not path.startswith(".") and not path.startswith(os.sep):
+        return
+    raise FileNotFoundError(f"O caminho de {label} nao foi encontrado: {path}")
+    
 
 
 # Function to create a chunks from the FAQ entries, where each chunk contains a ?.

@@ -30,6 +30,7 @@ async def connect_db():
 			pass
 
 	def _connect():
+		print(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT)
 		return mysql.connector.connect(
 			host=DB_HOST,
 			user=DB_USER,
