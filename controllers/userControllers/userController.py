@@ -1,9 +1,10 @@
 from database.conn import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
 import mysql.connector
+import asyncio
 
 
-def get_user_by_email(email, table="usuario"):
-	conn = mysql.connector.connect(
+async def get_user_by_email(email, table="usuario"):
+	conn = await asyncio.get_event_loop().run_in_executor(None, mysql.connector.connect,
 		host=DB_HOST,
 		user=DB_USER,
 		password=DB_PASSWORD,
@@ -23,8 +24,8 @@ def get_user_by_email(email, table="usuario"):
 			pass
 
 
-def create_user(name, data_nasc, cpf, telephone, email, password, table="usuario"):
-	conn = mysql.connector.connect(
+async def create_user(name, data_nasc, cpf, telephone, email, password, table="usuario"):
+	conn = await asyncio.get_event_loop().run_in_executor(None, mysql.connector.connect,
 		host=DB_HOST,
 		user=DB_USER,
 		password=DB_PASSWORD,
