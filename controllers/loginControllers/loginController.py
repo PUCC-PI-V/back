@@ -1,7 +1,6 @@
 from fastapi import HTTPException, Request
-
-from database.prisma.client import prisma
-
+from database import conn as db
+import asyncio
 
 async def login(request: Request):
     data = await request.json()
@@ -13,13 +12,14 @@ async def login(request: Request):
             status_code=400, detail="Email e senha sao obrigatorios."
         )
 
-    user = await prisma.user.find_unique(where={"email": email})
-    if user is None or user.password != password:
+
+    user = await asyncio.to_thread(db.get_user_by_email, email)
+    if user is None or user["password"] != password:
         raise HTTPException(
             status_code=401, detail="Email ou senha invalidos."
         )
 
     return {
         "success": True,
-        "user": {"id": user.id, "email": user.email},
+        "user": {"id": user["id"], "email": user["email"]},
     }

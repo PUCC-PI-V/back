@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from database.conn import connect_db, disconnect_db
 import os
 import uvicorn
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from routes.iaRoutes import iaRoute
 from routes.loginRoute import loginRoute
-from database.prisma.client import connect_db, disconnect_db
 from utils.installModels.autoInstallModels import autoInstallModels
 
 app = FastAPI()
