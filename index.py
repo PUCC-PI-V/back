@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -5,6 +7,7 @@ from database.conn import connect_db, disconnect_db
 import os
 import uvicorn
 import asyncio
+import traceback
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from utils.installModels.autoInstallModels import autoInstallModels
@@ -44,7 +47,13 @@ app.include_router(tattooRoute.router, prefix="/tattoo")
 @app.on_event("startup")
 async def startup():
     await connect_db()
-    await asyncio.to_thread(autoInstallModels)
+    task = asyncio.create_task(asyncio.to_thread(autoInstallModels))
+    def _on_done(t):
+        try:
+            t.result()
+        except Exception:
+            traceback.print_exc()
+    task.add_done_callback(_on_done)
 
 
 @app.on_event("shutdown")

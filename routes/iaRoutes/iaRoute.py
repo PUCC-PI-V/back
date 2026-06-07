@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 from controllers.iaControllers import iaController
 from slowapi import Limiter
 from slowapi.util import get_remote_address

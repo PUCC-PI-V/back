@@ -1,5 +1,4 @@
-from http.client import HTTPException
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 from controllers.tattooControllers import tattooController
 
 router = APIRouter()
