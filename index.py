@@ -7,7 +7,7 @@ import uvicorn
 import asyncio
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from database.vectorDatabase.downloadDatas import download_datas
+from utils.installModels.autoInstallModels import autoInstallModels
 from routes.iaRoutes import iaRoute
 from routes.loginRoute import loginRoute
 from routes.formRoutes.userRoute import userRoute
@@ -42,7 +42,7 @@ app.include_router(userRoute.router, prefix="/user")
 @app.on_event("startup")
 async def startup():
     await connect_db()
-    asyncio.create_task(asyncio.to_thread(download_datas))
+    await asyncio.to_thread(autoInstallModels)
 
 
 @app.on_event("shutdown")
