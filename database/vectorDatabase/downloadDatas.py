@@ -17,6 +17,7 @@ SOURCE_DATA_PATH = os.getenv("SOURCE_DATA_PATH", os.path.join(BASE_DIR, "source_
 def ensure_local_path(path: str, label: str) -> None:
     if not os.path.isdir(path):
         raise FileNotFoundError(f"O caminho de {label} nao foi encontrado: {path}")
+    
 
 
 # Function to create a chunks from the FAQ entries, where each chunk contains a ?.
@@ -64,8 +65,8 @@ def download_datas():
     ensure_local_path(EMBEDDINGS_DIR, "modelo de embeddings")
 
     huggingface_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=EMBEDDINGS_DIR
-    )
+    model_name=EMBEDDINGS_DIR
+)
 
     # Initialize ChromaDB client and create collection
     client = chromadb.PersistentClient(path=CHROMADB_DIR)
