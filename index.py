@@ -11,6 +11,7 @@ from utils.installModels.autoInstallModels import autoInstallModels
 from routes.iaRoutes import iaRoute
 from routes.loginRoute import loginRoute
 from routes.formRoutes.userRoute import userRoute
+from routes.formRoutes.tattooRoute import tattooRoute
 from utils.installModels.autoInstallModels import autoInstallModels
 
 app = FastAPI()
@@ -38,6 +39,7 @@ async def root():
 app.include_router(iaRoute.router, prefix="/ia")
 app.include_router(loginRoute.router, prefix="/admin")
 app.include_router(userRoute.router, prefix="/user")
+app.include_router(tattooRoute.router, prefix="/tattoo")
 
 @app.on_event("startup")
 async def startup():

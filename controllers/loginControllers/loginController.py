@@ -1,25 +1,25 @@
 from fastapi import HTTPException, Request
-from database import conn as db
+from database.conn import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
+import mysql.connector
+
 import asyncio
 
-async def login(request: Request):
-    data = await request.json()
-    email = str(data.get("email") or "").strip()
-    password = str(data.get("password") or "")
-
-    if not email or not password:
-        raise HTTPException(
-            status_code=400, detail="Email e senha sao obrigatorios."
-        )
-
-
-    user = await asyncio.to_thread(db.get_user_by_email, email)
-    if user is None or user["password"] != password:
-        raise HTTPException(
-            status_code=401, detail="Email ou senha invalidos."
-        )
-
-    return {
-        "success": True,
-        "user": {"id": user["id"], "email": user["email"]},
-    }
+async def login(email, password, table = "usuario"):
+    conn = await asyncio.get_event_loop().run_in_executor(None, mysql.connector.connect,
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME or None,
+        port=DB_PORT,
+    )
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute(f"SELECT * FROM {table} WHERE email = %s AND senha = %s LIMIT 1", (email, password))
+        row = cur.fetchone()
+        cur.close()
+        return row
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
