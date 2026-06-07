@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException
 from controllers.tattooControllers import tattooController
+from json import JSONDecodeError
+
 
 router = APIRouter()
 
@@ -42,8 +44,48 @@ async def create_tattoo(request: Request):
     ):
         raise HTTPException(
             status_code=400,
-            detail="Todos os campos sao obrigatorios e devem ser válidos.",
-        )
+            detail="Todos os campos sao obrigatorios e devem ser válidos.")
 
     await tattooController.create_tattoo(cliente, tamanho, sombreamento, colorido, estilo, area_tatuada, regiao_especifica)
     raise HTTPException(status_code=201, detail="Tatuagem criada com sucesso.")
+
+
+"""@router.patch("/add_estim_value/{id_tatuagem}")
+async def add_estim_value(id_tatuagem: int, request: Request):
+    data = await request.json()
+    valor_estimado = data.get("valor_estimado")
+    if valor_estimado is None:
+        raise HTTPException(status_code=400, detail="O campo 'valor_estimado' é obrigatório.")
+    try:
+        valor_estimado = float(valor_estimado)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="O campo 'valor_estimado' deve ser um número.")
+    
+    await tattooController.add_estim_value(id_tatuagem, valor_estimado)
+    raise HTTPException(status_code=200, detail="Valor estimado adicionado com sucesso.")"""
+    
+@router.patch("/add_estim_value/{id_tatuagem}")
+async def add_estim_value(id_tatuagem: int, request: Request):
+    raw = await request.body()
+    if not raw:
+        q = request.query_params.get("valor_estimado")
+        if q is None:
+            raise HTTPException(status_code=400, detail="Request body is empty. Send JSON: {\"valor_estimado\":1300}")
+        valor_estimado = q
+    else:
+        try:
+            data = await request.json()
+        except (JSONDecodeError, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+        valor_estimado = data.get("valor_estimado")
+
+    if valor_estimado is None:
+        raise HTTPException(status_code=400, detail="O campo 'valor_estimado' é obrigatório.")
+
+    try:
+        valor_estimado = float(valor_estimado)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="O campo 'valor_estimado' deve ser um número.")
+
+    await tattooController.add_estim_value(id_tatuagem, valor_estimado)
+    raise HTTPException(status_code=200, detail="Valor estimado adicionado com sucesso.")

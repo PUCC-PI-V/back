@@ -21,12 +21,15 @@ async def get_valor_ia(texto):
     return extract_valor_ia(response)
 
 async def get_tattoo_by_id(id_tatuagem, table="tatuagem"):
-    conn = await asyncio.get_event_loop().run_in_executor(None, mysql.connector.connect,
-        host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME or None,
-        port=DB_PORT,
+    conn = await asyncio.get_event_loop().run_in_executor(
+        None,
+        lambda: mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME or None,
+            port=DB_PORT,
+        ),
     )
     try:
         cur = conn.cursor(dictionary=True)
@@ -41,14 +44,17 @@ async def get_tattoo_by_id(id_tatuagem, table="tatuagem"):
             pass
         
 async def create_tattoo(cliente, tamanho, sombreamento, colorido, estilo, area_tatuada, regiao_especifica, table="tatuagem"):
-    conn = await asyncio.get_event_loop().run_in_executor(None, lambda: mysql.connector.connect(
-        host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME or None,
-        port=DB_PORT,
-    ),
-)
+    # Insert row first and get inserted id, then schedule AI estimation in background
+    conn = await asyncio.get_event_loop().run_in_executor(
+        None,
+        lambda: mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME or None,
+            port=DB_PORT,
+        ),
+    )
     try:
         cur = conn.cursor()
         cur.execute(
@@ -56,16 +62,38 @@ async def create_tattoo(cliente, tamanho, sombreamento, colorido, estilo, area_t
             (cliente, tamanho, sombreamento, colorido, estilo, area_tatuada, regiao_especifica),
         )
         conn.commit()
+        new_id = cur.lastrowid
         cur.close()
     finally:
         try:
             conn.close()
         except Exception:
             pass
+
+    # Background task: compute estimated value and update row
+    async def _compute_and_update(id_, area, region, style, size, shade, colored, table_name):
+        try:
+            prompt = (
+                f"Qual o valor estimado para uma tatuagem com as seguintes características: "
+                f"tamanho {size}, sombreamento {'sim' if shade else 'nao'}, colorido {'sim' if colored else 'nao'}, "
+                f"estilo {style}, area tatuada {area}, regiao especifica {region}? Responda apenas com o valor estimado em reais, sem texto adicional."
+            )
+            valor = await get_valor_ia(prompt)
+            if valor is None:
+                # couldn't extract a value from AI response; skip update or log
+                return
+            await add_estim_value(id_, valor, table_name)
+        except Exception:
+            import traceback
+
+            traceback.print_exc()
+
+    asyncio.create_task(_compute_and_update(new_id, area_tatuada, regiao_especifica, estilo, tamanho, sombreamento, colorido, table))
+    return new_id
         
 # route to add the estimated value returned from the AI model
-
 async def add_estim_value(id_tatuagem, valor_estimado, table="tatuagem"):
+    
     conn = await asyncio.get_event_loop().run_in_executor(None, lambda: mysql.connector.connect(
         host=DB_HOST,
         user=DB_USER,
