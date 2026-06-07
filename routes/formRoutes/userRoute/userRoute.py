@@ -1,3 +1,4 @@
+from http.client import HTTPException
 from fastapi import APIRouter, Request
 from controllers.userControllers import userController
 
@@ -14,11 +15,17 @@ async def create_user(request: Request):
     password = str(data.get("password") or "")
 
     if not nome or not data_nasc or not cpf or not telefone or not email or not password:
-        return {"error": False, "message": "Todos os campos sao obrigatorios."}
+        raise HTTPException(
+            status_code=400,
+            detail="Todos os campos sao obrigatorios."
+        )
 
     existing_user = await userController.get_user_by_email(email)
     if existing_user is not None:
-        return {"success": False, "message": "Email ja cadastrado."}
+        raise HTTPException(
+            status_code=400,
+            detail="Email ja cadastrado."
+        )
 
     await userController.create_user(nome, data_nasc, cpf, telefone, email, password)
-    return {"success": True, "message": "Usuario criado com sucesso."}
+    raise HTTPException(status_code=201, detail="Usuario criado com sucesso.")

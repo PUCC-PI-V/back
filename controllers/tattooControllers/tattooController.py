@@ -3,7 +3,7 @@ import mysql.connector
 import asyncio
 
 
-async def get_tattoo_by_id(tattoo_id, table="tatuagem"):
+async def get_tattoo_by_id(id_tatuagem, table="tatuagem"):
     conn = await asyncio.get_event_loop().run_in_executor(None, mysql.connector.connect,
         host=DB_HOST,
         user=DB_USER,
@@ -13,7 +13,7 @@ async def get_tattoo_by_id(tattoo_id, table="tatuagem"):
     )
     try:
         cur = conn.cursor(dictionary=True)
-        cur.execute(f"SELECT * FROM {table} WHERE id = %s LIMIT 1", (tattoo_id,))
+        cur.execute(f"SELECT * FROM {table} WHERE id_tatuagem = %s LIMIT 1", (id_tatuagem,))
         row = cur.fetchone()
         cur.close()
         return row
@@ -23,19 +23,20 @@ async def get_tattoo_by_id(tattoo_id, table="tatuagem"):
         except Exception:
             pass
         
-async def create_tattoo(name, description, price, table="tatuagem"):
-    conn = await asyncio.get_event_loop().run_in_executor(None, mysql.connector.connect,
+async def create_tattoo(cliente, tamanho, sombreamento, colorido, estilo, area_tatuada, regiao_especifica, table="tatuagem"):
+    conn = await asyncio.get_event_loop().run_in_executor(None, lambda: mysql.connector.connect(
         host=DB_HOST,
         user=DB_USER,
         password=DB_PASSWORD,
         database=DB_NAME or None,
         port=DB_PORT,
-    )
+    ),
+)
     try:
         cur = conn.cursor()
         cur.execute(
-            f"INSERT INTO {table} (name, description, price) VALUES (%s, %s, %s)",
-            (name, description, price),
+            f"INSERT INTO {table} (cliente, tamanho, sombreamento, colorido, estilo, area_tatuada, regiao_especifica) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (cliente, tamanho, sombreamento, colorido, estilo, area_tatuada, regiao_especifica),
         )
         conn.commit()
         cur.close()
