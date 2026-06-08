@@ -2,8 +2,16 @@ from fastapi import HTTPException
 from database.conn import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
 import mysql.connector
 import asyncio
+import jwt
+from dotenv import load_dotenv
+import os
+from datetime import datetime, timedelta
+load_dotenv()
 
 ADMIN_TABLE = "User"
+JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
+JWT_EXPIRATION = int(os.getenv("JWT_EXPIRATION"))
 
 
 async def login(email: str, password: str):
@@ -35,7 +43,17 @@ async def login(email: str, password: str):
     if user is None or user.get("password") != password:
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
 
+    access_token = jwt.encode(
+        {
+            "sub": str(user["id"]),
+            "exp": datetime.utcnow() + timedelta(seconds=JWT_EXPIRATION),
+        },
+        JWT_SECRET,
+        algorithm=JWT_ALGORITHM,
+    )
+
     return {
         "success": True,
         "user": {"id": user["id"], "email": user["email"]},
+        "access_token": access_token,
     }
