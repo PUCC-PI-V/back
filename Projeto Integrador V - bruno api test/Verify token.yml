@@ -1,0 +1,21 @@
+info:
+  name: Verify token
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: http://localhost:8000/token/validate
+  body:
+    type: json
+    data: |-
+      {
+        "token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzgwOTI2Mzk1fQ.xW0FqQd1xRa1UgOKroThlrNOLTd4vSpxmKW1GH5ag"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

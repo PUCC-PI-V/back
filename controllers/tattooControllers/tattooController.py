@@ -4,7 +4,8 @@ import asyncio
 
 
 async def get_tattoo_by_id(id_tatuagem, table="tatuagem"):
-    conn = await asyncio.get_event_loop().run_in_executor(None, mysql.connector.connect,
+    conn = await asyncio.to_thread(
+        mysql.connector.connect,
         host=DB_HOST,
         user=DB_USER,
         password=DB_PASSWORD,
@@ -24,14 +25,14 @@ async def get_tattoo_by_id(id_tatuagem, table="tatuagem"):
             pass
         
 async def create_tattoo(cliente, tamanho, sombreamento, colorido, estilo, area_tatuada, regiao_especifica, table="tatuagem"):
-    conn = await asyncio.get_event_loop().run_in_executor(None, lambda: mysql.connector.connect(
+    conn = await asyncio.to_thread(
+        mysql.connector.connect,
         host=DB_HOST,
         user=DB_USER,
         password=DB_PASSWORD,
         database=DB_NAME or None,
         port=DB_PORT,
-    ),
-)
+    )
     try:
         cur = conn.cursor()
         cur.execute(

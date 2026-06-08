@@ -1,8 +1,9 @@
-from http.client import HTTPException
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from controllers.loginControllers import loginController
-from routes.iaRoutes.iaRoute import limiter
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
 
 @router.post("/login")
