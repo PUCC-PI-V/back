@@ -4,7 +4,7 @@ import mysql.connector
 import asyncio
 from fastapi import HTTPException
 from services.iaServices import iaService
-from services.emailServices import emailService
+from services.emailServices.emails import budgetEmail, userBudgetThankYouEmail
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8080")
 
@@ -191,9 +191,12 @@ async def create_budget(
 
     form_link = f"{FRONTEND_URL}/admin/calculate/{tattoo_id}"
 
+    email_sent = False
+    user_email_sent = False
+
     try:
         await asyncio.to_thread(
-            emailService.send_email,
+            budgetEmail.send,
             tattoo_description=descricao,
             form_link=form_link,
             client_name=cliente,
@@ -203,8 +206,18 @@ async def create_budget(
         )
         email_sent = True
     except Exception as exc:
-        print(f"Falha ao enviar email do orcamento {tattoo_id}: {exc}")
-        email_sent = False
+        print(f"Falha ao enviar email admin do orcamento {tattoo_id}: {exc}")
+
+    try:
+        await asyncio.to_thread(
+            userBudgetThankYouEmail.send,
+            to=email,
+            client_name=nome,
+            estimativa_valor=ia_result["estimativaValor"],
+        )
+        user_email_sent = True
+    except Exception as exc:
+        print(f"Falha ao enviar email de agradecimento ao usuario {tattoo_id}: {exc}")
 
     return {
         "created_user": created_user,
@@ -215,4 +228,5 @@ async def create_budget(
         "justificativaIa": ia_result["justificativaIa"],
         "form_link": form_link,
         "email_sent": email_sent,
+        "user_email_sent": user_email_sent,
     }
