@@ -1,6 +1,7 @@
 import os
 import base64
 import html
+from pathlib import Path
 from email.message import EmailMessage
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -9,6 +10,10 @@ from googleapiclient.discovery import build
 from dotenv import load_dotenv
 
 load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+TOKEN_PATH = BASE_DIR / "token.json"
+CREDENTIALS_PATH = BASE_DIR / "credentials.json"
 
 EMAIL_TO = os.getenv("EMAIL_TO")
 EMAIL_FROM = os.getenv("EMAIL_FROM")
@@ -23,40 +28,91 @@ EMAIL_HERO_OBJECT_POSITION = "right top"
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
+
+def _save_token(creds: Credentials) -> None:
+    TOKEN_PATH.write_text(creds.to_json(), encoding="utf-8")
+
+
+def get_gmail_credentials(*, allow_interactive: bool = False) -> Credentials:
+    creds = None
+
+    if TOKEN_PATH.exists():
+        creds = Credentials.from_authorized_user_file(str(TOKEN_PATH), SCOPES)
+
+    if creds and creds.valid:
+        return creds
+
+    if creds and creds.expired and creds.refresh_token:
+        try:
+            creds.refresh(Request())
+            _save_token(creds)
+            return creds
+        except Exception:
+            TOKEN_PATH.unlink(missing_ok=True)
+            raise RuntimeError(
+                "Gmail: token expirado ou revogado. Rode na raiz do projeto: "
+                "python services/emailServices/emailService.py"
+            )
+
+    if not allow_interactive:
+        raise RuntimeError(
+            "Gmail: autenticacao necessaria. Rode na raiz do projeto: "
+            "python services/emailServices/emailService.py"
+        )
+
+    if not CREDENTIALS_PATH.exists():
+        raise FileNotFoundError(
+            f"credentials.json nao encontrado em {CREDENTIALS_PATH}"
+        )
+
+    flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_PATH), SCOPES)
+    creds = flow.run_local_server(port=0)
+    _save_token(creds)
+    return creds
+
+
+def _format_currency(cents: int | None) -> str:
+    if cents is None:
+        return "Nao informado"
+    reais = cents / 100
+    formatted = f"{reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"R$ {formatted}"
+
+
 def send_email(
     tattoo_description: str = "",
     form_link: str = "",
     client_name: str = "",
     subject: str = "Novo aviso de orçamento - ViboraInk",
+    dificuldade_ia: str = "",
+    estimativa_valor: int | None = None,
+    justificativa_ia: str = "",
 ):
-    creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-
+    creds = get_gmail_credentials(allow_interactive=False)
     service = build('gmail', 'v1', credentials=creds)
     
     message = EmailMessage()
     safe_client_name = client_name.strip() if client_name else "Cliente"
     safe_description = tattoo_description.strip() if tattoo_description else "Sem descrição enviada."
     safe_form_link = form_link.strip() if form_link else "Link do formulário ainda não informado."
+    safe_dificuldade = dificuldade_ia.strip() if dificuldade_ia else "Nao informado"
+    safe_estimativa = _format_currency(estimativa_valor)
+    safe_justificativa = justificativa_ia.strip() if justificativa_ia else "Nao informado"
 
     html_client_name = html.escape(safe_client_name)
     html_description = html.escape(safe_description)
     html_form_link = html.escape(safe_form_link)
+    html_dificuldade = html.escape(safe_dificuldade)
+    html_estimativa = html.escape(safe_estimativa)
+    html_justificativa = html.escape(safe_justificativa)
 
     plain_text = (
         "ViboraInk - Novo aviso de orçamento\n\n"
         f"Cliente: {safe_client_name}\n"
         f"Descrição da tatuagem: {safe_description}\n"
+        f"Dificuldade (IA): {safe_dificuldade}\n"
+        f"Estimativa (IA): {safe_estimativa}\n"
+        f"Justificativa (IA): {safe_justificativa}\n"
         f"Link do formulário: {safe_form_link}\n"
     )
 
@@ -116,6 +172,15 @@ def send_email(
                     <p style="margin:0 0 8px; font-size:14px; color:#ef6a84;">Descrição da tatuagem</p>
                     <p style="margin:0 0 20px; font-size:15px; color:#e8e8e8; line-height:1.5;">{html_description}</p>
 
+                    <p style="margin:0 0 8px; font-size:14px; color:#ef6a84;">Dificuldade (IA)</p>
+                    <p style="margin:0 0 20px; font-size:15px; color:#e8e8e8; line-height:1.5;">{html_dificuldade}</p>
+
+                    <p style="margin:0 0 8px; font-size:14px; color:#ef6a84;">Estimativa (IA)</p>
+                    <p style="margin:0 0 20px; font-size:15px; color:#e8e8e8; line-height:1.5;">{html_estimativa}</p>
+
+                    <p style="margin:0 0 8px; font-size:14px; color:#ef6a84;">Justificativa (IA)</p>
+                    <p style="margin:0 0 20px; font-size:15px; color:#e8e8e8; line-height:1.5;">{html_justificativa}</p>
+
                     <p style="margin:0 0 8px; font-size:14px; color:#ef6a84;">Formulário para tatuadora</p>
                     <p style="margin:0 0 24px; font-size:15px; color:#e8e8e8; line-height:1.5;">
                       <a href="{html_form_link}" style="color:#ff3b5c; text-decoration:none;">{html_form_link}</a>
@@ -158,4 +223,6 @@ def send_email(
     print(f'Enviado! ID: {send_message["id"]}')
 
 if __name__ == '__main__':
+    get_gmail_credentials(allow_interactive=True)
     send_email()
+    print("E-mail de teste enviado com sucesso.")

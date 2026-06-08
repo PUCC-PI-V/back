@@ -7,7 +7,7 @@ from database.vectorDatabase.downloadDatas import download_datas
 load_dotenv()
 
 EMBEDDINGS_DIR = os.getenv("EMBEDDINGS_DIR", os.path.join(os.path.dirname(__file__), "models/multilingual-e5-small"))
-MODEL_DIR = os.getenv("MODEL_DIR", os.path.join(os.path.dirname(__file__), "models/llama-3.2-3b-instruct"))
+MODEL_DIR = os.getenv("MODEL_DIR", os.path.join(os.path.dirname(__file__), "models/llama-3.2-1b-instruct"))
 CHROMA_DB_DIR = os.getenv("CHROMA_DB_DIR", os.path.join(os.path.dirname(__file__), "database/vectorDatabase/chroma_db"))
 
 def autoInstallModels():

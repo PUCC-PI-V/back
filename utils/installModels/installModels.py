@@ -9,31 +9,36 @@ load_dotenv()
 # Define paths and model names
 hf_token = os.getenv("HF_TOKEN", "").strip()
 
-llm_model_name = "meta-llama/Llama-3.2-3B-Instruct"
+llm_model_name = "meta-llama/Llama-3.2-1B-Instruct"
 embedding_model_name = "intfloat/multilingual-e5-small"
 
-llm_path = "./models/llama-3.2-3b-instruct"
-embedding_path = "./models/multilingual-e5-small"
+llm_path = os.getenv("MODEL_DIR", "./models/llama-3.2-1b-instruct")
+embedding_path = os.getenv("EMBEDDINGS_DIR", "./models/multilingual-e5-small")
 
 
 def download_model():
     if not hf_token:
         print("HF_TOKEN is not set. Please set it in the .env file.")
         return
-    
-    if os.path.exists(llm_path) or os.path.exists(embedding_path):
+
+    need_llm = not os.path.exists(llm_path)
+    need_embeddings = not os.path.exists(embedding_path)
+
+    if not need_llm and not need_embeddings:
         print("Models already exist. Skipping download.")
         return
 
-    # Download the LLM and embedding models from Hugging Face
     try:
-        snapshot_download(repo_id=llm_model_name, local_dir=llm_path, token=hf_token)
-        embedding_model = SentenceTransformer(embedding_model_name)    
+        if need_llm:
+            print(f"Baixando LLM {llm_model_name}...")
+            snapshot_download(repo_id=llm_model_name, local_dir=llm_path, token=hf_token)
+        if need_embeddings:
+            print(f"Baixando embeddings {embedding_model_name}...")
+            embedding_model = SentenceTransformer(embedding_model_name)
+            embedding_model.save(embedding_path)
     except Exception as e:
         print(f"Error downloading models: {e}")
         sys.exit(1)
-
-    embedding_model.save(embedding_path)
 
     print("Models downloaded and saved successfully.")
 
