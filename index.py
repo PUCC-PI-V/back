@@ -31,9 +31,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 # Simple route to check if the backend is running
-@app.get("/")
+@app.get("/status")
 async def root():
-    return {"message": f"bogos binted {PORT} times"}
+    return {"message": f"Backend is running on port {PORT}"}
 
 
 app.include_router(iaRoute.router, prefix="/ia")
