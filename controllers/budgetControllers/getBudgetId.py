@@ -44,7 +44,6 @@ def _map_budget_detail(row: dict) -> dict:
         "nome": row.get("nome") or "",
         "email": row.get("email") or "",
         "telefone": row.get("telefone") or "",
-        "dataNasc": row.get("data_nasc") or "",
         "data": _format_date(row.get("created_at")),
         "cliente": row.get("cliente") or "",
         "ideia": row.get("descricao") or "",
@@ -82,8 +81,7 @@ async def get_budget_by_id(budget_id: int):
                     t.created_at,
                     u.nome,
                     u.email,
-                    u.telefone,
-                    u.data_nasc
+                    u.telefone
                 FROM {TATTOO_TABLE} t
                 LEFT JOIN {USER_TABLE} u ON u.id = t.usuario_id
                 WHERE t.id_tatuagem = %s
