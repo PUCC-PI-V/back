@@ -12,10 +12,10 @@ from slowapi.errors import RateLimitExceeded
 from utils.installModels.autoInstallModels import autoInstallModels
 from routes.iaRoutes import iaRoute
 from routes.loginRoute import loginRoute
-from routes.formRoutes.userRoute import userRoute
-from routes.formRoutes.tattooRoute import tattooRoute
+from routes.budgetRoutes import budgetRoute
 from utils.token.tokenVerify import verify_token
 from routes.tokenRoutes import tokenRoute
+from services.iaServices import iaService
 
 app = FastAPI()
 app.state.limiter = iaRoute.limiter
@@ -25,8 +25,8 @@ load_dotenv()
 # Get the port from environment variable, default to 8000 if not set
 PORT = int(os.getenv("PORT", 8000))
 
-PUBLIC_ROUTES = {"/admin/login", "/status", "/token/verify"}
-ADMIN_ROUTES = {"/admin/panel", "/admin/calculator"}
+PUBLIC_ROUTES = {"/admin/login", "/status", "/token/verify", "/budget/submit", "/budget/list"}
+ADMIN_ROUTES = {"/admin/panel", "/budget"}
 
 app.add_middleware(
     CORSMiddleware,
@@ -63,14 +63,16 @@ async def root():
 
 app.include_router(iaRoute.router, prefix="/ia")
 app.include_router(loginRoute.router, prefix="/admin")
-app.include_router(userRoute.router, prefix="/user")
-app.include_router(tattooRoute.router, prefix="/tattoo")
+app.include_router(budgetRoute.router, prefix="/budget")
 app.include_router(tokenRoute.router, prefix="/token")
 
 @app.on_event("startup")
 async def startup():
     await connect_db()
     await asyncio.to_thread(autoInstallModels)
+    print("Carregando base vetorial...")
+    await asyncio.to_thread(iaService.load_chroma)
+    print("Base vetorial pronta.")
 
 
 @app.on_event("shutdown")

@@ -1,0 +1,36 @@
+info:
+  name: Criar orçamento
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: http://localhost:8000/budget/submit
+  body:
+    type: json
+    data: |-
+      {
+        "usuario": {
+          "nome": "Guilherme Guedes",
+          "data_nasc": "1990-01-01",
+          "telefone": "11999999999",
+          "email": "guiguedese@example.com"
+        },
+        "tatuagem": {
+          "cliente": "Guilherme Guedes",
+          "tamanho": "Media",
+          "sombreamento": true,
+          "colorido": false,
+          "estilo": "Realismo",
+          "area_tatuada": "Braco",
+          "regiao_especifica": "Antebraco",
+          "descricao": "Quero fazer uma piroca bem grande e grossa veiuda"
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
