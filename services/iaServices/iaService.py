@@ -108,7 +108,7 @@ def load_llm():
             MODEL_DIR,
             local_files_only=True,
             low_cpu_mem_usage=True,
-            torch_dtype=torch.float16,
+            dtype=torch.float16,
         )
 
         if torch.cuda.is_available():

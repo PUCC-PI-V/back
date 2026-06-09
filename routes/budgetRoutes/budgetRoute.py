@@ -1,7 +1,18 @@
 from fastapi import APIRouter, HTTPException, Request
-from controllers.budgetControllers import budgetController
+from controllers.budgetControllers import budgetController, getBudget, getBudgetId
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter()
+
+limiter = Limiter(key_func=get_remote_address)
+
+
+@router.get("/list")
+@limiter.limit("5/minute")
+async def list_budgets(request: Request):
+    budgets = await getBudget.get_all_budgets()
+    return budgets
 
 
 def _parse_bool_to_int(value):
@@ -29,6 +40,7 @@ def _get_field(data: dict, *keys: str) -> str:
 
 
 @router.post("/submit", status_code=201)
+@limiter.limit("5/minute")
 async def submit_budget(request: Request):
     data = await request.json()
 
@@ -94,3 +106,9 @@ async def submit_budget(request: Request):
         "message": "Orcamento criado com sucesso.",
         **result,
     }
+
+
+@router.get("/{budget_id}")
+@limiter.limit("5/minute")
+async def get_budget(request: Request, budget_id: int):
+    return await getBudgetId.get_budget_by_id(budget_id)

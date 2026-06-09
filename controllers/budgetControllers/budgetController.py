@@ -54,14 +54,17 @@ async def create_user(nome, data_nasc, telefone, email):
                 (nome, data_nasc, telefone, email),
             )
             conn.commit()
+            user_id = cur.lastrowid
             cur.close()
+            return user_id
         finally:
             conn.close()
 
-    await asyncio.to_thread(_work)
+    return await asyncio.to_thread(_work)
 
 
 async def create_tattoo(
+    usuario_id,
     cliente,
     tamanho,
     sombreamento,
@@ -82,13 +85,14 @@ async def create_tattoo(
                 f"""
                 INSERT INTO {TATTOO_TABLE}
                     (
-                        cliente, tamanho, sombreamento, colorido, estilo,
+                        usuario_id, cliente, tamanho, sombreamento, colorido, estilo,
                         area_tatuada, regiao_especifica, descricao,
                         estimativa_valor, dificuldade_ia, justificativa_ia
                     )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
+                    usuario_id,
                     cliente,
                     tamanho,
                     sombreamento,
@@ -155,8 +159,10 @@ async def create_budget(
     created_user = False
 
     if existing_user is None:
-        await create_user(nome, data_nasc, telefone, email)
+        usuario_id = await create_user(nome, data_nasc, telefone, email)
         created_user = True
+    else:
+        usuario_id = existing_user["id"]
 
     try:
         ia_result = await _analyze_budget_with_ia(
@@ -176,6 +182,7 @@ async def create_budget(
         ) from exc
 
     tattoo_id = await create_tattoo(
+        usuario_id,
         cliente,
         tamanho,
         sombreamento,

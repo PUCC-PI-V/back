@@ -25,8 +25,8 @@ load_dotenv()
 # Get the port from environment variable, default to 8000 if not set
 PORT = int(os.getenv("PORT", 8000))
 
-PUBLIC_ROUTES = {"/admin/login", "/status", "/token/verify", "/budget/submit"}
-ADMIN_ROUTES = {"/admin/panel"}
+PUBLIC_ROUTES = {"/admin/login", "/status", "/token/verify", "/budget/submit", "/budget/list"}
+ADMIN_ROUTES = {"/admin/panel", "/budget"}
 
 app.add_middleware(
     CORSMiddleware,
