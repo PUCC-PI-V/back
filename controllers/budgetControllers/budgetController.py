@@ -40,7 +40,7 @@ async def get_user_by_email(email: str):
     return await asyncio.to_thread(_work)
 
 
-async def create_user(nome, data_nasc, telefone, email):
+async def create_user(nome, telefone, email):
     def _work():
         conn = _connect()
         try:
@@ -48,10 +48,10 @@ async def create_user(nome, data_nasc, telefone, email):
             cur.execute(
                 f"""
                 INSERT INTO {USER_TABLE}
-                    (nome, data_nasc, telefone, email)
-                VALUES (%s, %s, %s, %s)
+                    (nome, telefone, email)
+                VALUES (%s, %s, %s)
                 """,
-                (nome, data_nasc, telefone, email),
+                (nome, telefone, email),
             )
             conn.commit()
             user_id = cur.lastrowid
@@ -143,7 +143,6 @@ async def _analyze_budget_with_ia(
 
 async def create_budget(
     nome,
-    data_nasc,
     telefone,
     email,
     cliente,
@@ -159,7 +158,7 @@ async def create_budget(
     created_user = False
 
     if existing_user is None:
-        usuario_id = await create_user(nome, data_nasc, telefone, email)
+        usuario_id = await create_user(nome, telefone, email)
         created_user = True
     else:
         usuario_id = existing_user["id"]

@@ -54,7 +54,6 @@ async def submit_budget(request: Request):
         )
 
     nome = _get_field(usuario, "nome")
-    data_nasc = _get_field(usuario, "data_nasc")
     telefone = _get_field(usuario, "telefone")
     email = _get_field(usuario, "email")
 
@@ -69,7 +68,7 @@ async def submit_budget(request: Request):
     )
     descricao = _get_field(tatuagem, "descricao")
 
-    missing_user_fields = not all([nome, data_nasc, telefone, email])
+    missing_user_fields = not all([nome, telefone, email])
     missing_tattoo_fields = not all(
         [cliente, tamanho, estilo, area_tatuada, regiao_especifica, descricao]
     )
@@ -88,7 +87,6 @@ async def submit_budget(request: Request):
 
     result = await budgetController.create_budget(
         nome=nome,
-        data_nasc=data_nasc,
         telefone=telefone,
         email=email,
         cliente=cliente,
