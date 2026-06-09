@@ -6,6 +6,7 @@ async def prompt_index(request: Request):
     
     data = await request.json()
     question = str(data.get("input") or data.get("prompt") or "").strip()
+    contexto = str(data.get("contexto") or "").strip() or None
     
     try:
         tokenizar, model, collection = iaService.load_resources()
@@ -21,7 +22,13 @@ async def prompt_index(request: Request):
         if not question:
             raise HTTPException(status_code=400, detail="A pergunta nao pode ser vazia.")
         
-        answer = iaService.rag_chain(question, tokenizar, model, collection)
+        answer = iaService.rag_chain(
+            question,
+            tokenizar,
+            model,
+            collection,
+            contexto=contexto,
+        )
 
         return {"answer": answer}
     except HTTPException:
