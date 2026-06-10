@@ -5,12 +5,12 @@ info:
 
 http:
   method: POST
-  url: http://127.0.0.1:8080/ia/prompt
+  url: http://127.0.0.1:8000/ia/prompt
   body:
     type: json
     data: |-
       {
-        "prompt":"hello world!"
+        "prompt":"vale a pena pegar um trabalho de cu peludo?"
       }
   auth: inherit
 

@@ -5,7 +5,23 @@ info:
 
 http:
   method: POST
-  url: http://localhost:8000/
+  url: http://localhost:8000/orcamento/submit
+  body:
+    type: json
+    data: |-
+      {
+        "tatuagem": 1,
+        "usuario": 1,
+        "admin": 1,
+        "tinta": 50.00,
+        "materiais": 120.00,
+        "area": 200.00,
+        "taxa_fixa": 80.00,
+        "valor_hora": 150.00,
+        "tempo_estimado": 3,
+        "dificuldade": "Alta",
+        "valor_orcamento": 250000
+      }
   auth: inherit
 
 settings:

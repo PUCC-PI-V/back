@@ -5,8 +5,10 @@ info:
 
 http:
   method: GET
-  url: http://127.0.0.1:8000/orcamento/list
-  auth: inherit
+  url: http://127.0.0.1:8000/orcamento/tatuagem/1
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzgxMTAxODgzfQ.a_sDGiqZAvxHAzNe8wetIR_vIqH0jQnaDA4z4wSGei8
 
 settings:
   encodeUrl: true

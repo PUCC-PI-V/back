@@ -5,10 +5,10 @@ info:
 
 http:
   method: GET
-  url: http://localhost:8000/budget/1
+  url: http://localhost:8000/budget/6
   auth:
     type: bearer
-    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzgwOTc3OTU3fQ.0n5EVp00DDNhec4FOf6oev2C62RWgp3LOHzYYcSTa5I
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzgxMTA2NTk5fQ.LbZkR6IY_-5nPLfQ4xKhiQL_QH4yKUJp8u708s722Bo
 
 settings:
   encodeUrl: true

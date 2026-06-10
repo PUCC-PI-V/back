@@ -5,8 +5,10 @@ info:
 
 http:
   method: GET
-  url: http://localhost:8000/budget/submit
-  auth: inherit
+  url: http://localhost:8000/budget/list
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzgxMTAxODgzfQ.a_sDGiqZAvxHAzNe8wetIR_vIqH0jQnaDA4z4wSGei8
 
 settings:
   encodeUrl: true

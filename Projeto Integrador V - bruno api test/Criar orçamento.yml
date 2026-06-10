@@ -12,8 +12,7 @@ http:
       {
         "usuario": {
           "nome": "Guilherme Guedes",
-          "data_nasc": "1990-01-01",
-          "telefone": "11999999999",
+          "telefone": "1599118812",
           "email": "guiguedese@example.com"
         },
         "tatuagem": {
