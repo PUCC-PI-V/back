@@ -20,24 +20,20 @@ def _format_currency(cents: int | None) -> str:
 def build(
     client_name: str = "",
     valor_orcamento: int | None = None,
-    dificuldade: str = "",
     to: str = "",
     subject: str = "Seu orcamento foi confirmado - ViboraInk",
 ) -> dict:
     safe_client_name = client_name.strip() if client_name else "Cliente"
     safe_valor = _format_currency(valor_orcamento)
-    safe_dificuldade = dificuldade.strip() if dificuldade else "Nao informado"
 
     html_client_name = html.escape(safe_client_name)
     html_valor = html.escape(safe_valor)
-    html_dificuldade = html.escape(safe_dificuldade)
 
     plain_text = (
         "ViboraInk - Orcamento confirmado\n\n"
         f"Ola, {safe_client_name}!\n\n"
         "Seu orcamento foi analisado e confirmado pela nossa equipe.\n\n"
-        f"Valor do orcamento: {safe_valor}\n"
-        f"Dificuldade estimada: {safe_dificuldade}\n\n"
+        f"Valor do orcamento: {safe_valor}\n\n"
         "Em breve entraremos em contato para alinhar os proximos passos "
         "e agendar sua tatuagem.\n\n"
         "Obrigado por escolher a ViboraInk!"
@@ -52,27 +48,11 @@ def build(
         Seu orcamento foi analisado e confirmado pela nossa equipe. Confira os detalhes abaixo.
       </p>
 
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:12px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px; background:#171717; border:1px solid #45101b; border-radius:10px;">
         <tr>
-          <td class="email-metrics-col" style="padding:0 6px 12px 0; vertical-align:top;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#171717; border:1px solid #45101b; border-radius:10px;">
-              <tr>
-                <td align="center" style="padding:22px 20px;">
-                  <p style="margin:0 0 6px; font-size:12px; color:#ef6a84;">Valor do orcamento</p>
-                  <p style="margin:0; font-size:28px; color:#ffffff; font-weight:bold;">{html_valor}</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-          <td class="email-metrics-col" style="padding:0 0 12px 6px; vertical-align:top;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#171717; border:1px solid #45101b; border-radius:10px;">
-              <tr>
-                <td style="padding:22px 20px;">
-                  <p style="margin:0 0 6px; font-size:12px; color:#ef6a84;">Dificuldade</p>
-                  <p style="margin:0; font-size:20px; color:#ffffff; font-weight:bold;">{html_dificuldade}</p>
-                </td>
-              </tr>
-            </table>
+          <td align="center" style="padding:22px 20px;">
+            <p style="margin:0 0 6px; font-size:12px; color:#ef6a84;">Valor do orcamento</p>
+            <p style="margin:0; font-size:28px; color:#ffffff; font-weight:bold;">{html_valor}</p>
           </td>
         </tr>
       </table>
@@ -122,13 +102,11 @@ def send(
     to: str,
     client_name: str = "",
     valor_orcamento: int | None = None,
-    dificuldade: str = "",
     subject: str = "Seu orcamento foi confirmado - ViboraInk",
 ) -> str:
     payload = build(
         client_name=client_name,
         valor_orcamento=valor_orcamento,
-        dificuldade=dificuldade,
         to=to,
         subject=subject,
     )

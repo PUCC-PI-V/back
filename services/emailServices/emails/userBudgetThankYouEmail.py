@@ -71,7 +71,7 @@ def build(
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px; background:#171717; border:1px solid #45101b; border-radius:10px;">
         <tr>
           <td align="center" style="padding:22px 20px;">
-            <p style="margin:0 0 6px; font-size:12px; color:#ef6a84;">Valor estimado (IA)</p>
+            <p style="margin:0 0 6px; font-size:12px; color:#ef6a84;">Valor estimado</p>
             <p style="margin:0; font-size:28px; color:#ffffff; font-weight:bold;">{html_estimativa}</p>
           </td>
         </tr>

@@ -104,7 +104,6 @@ async def create_orcamento(
             to=email,
             client_name=client_name,
             valor_orcamento=valor_orcamento,
-            dificuldade=dificuldade or "",
         )
         email_sent = True
     except Exception as exc:
