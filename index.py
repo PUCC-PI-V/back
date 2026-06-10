@@ -13,6 +13,7 @@ from utils.installModels.autoInstallModels import autoInstallModels
 from routes.iaRoutes import iaRoute
 from routes.loginRoute import loginRoute
 from routes.budgetRoutes import budgetRoute
+from routes.orcamentoRoutes import orcamentoRoute
 from utils.token.tokenVerify import verify_token
 from routes.tokenRoutes import tokenRoute
 from services.iaServices import iaService
@@ -65,6 +66,7 @@ app.include_router(iaRoute.router, prefix="/ia")
 app.include_router(loginRoute.router, prefix="/admin")
 app.include_router(budgetRoute.router, prefix="/budget")
 app.include_router(tokenRoute.router, prefix="/token")
+app.include_router(orcamentoRoute.router, prefix="/orcamento")
 
 @app.on_event("startup")
 async def startup():
