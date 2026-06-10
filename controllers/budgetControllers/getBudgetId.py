@@ -1,9 +1,12 @@
 from datetime import datetime
+from decimal import Decimal
 
 from database.conn import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
 import mysql.connector
 import asyncio
 from fastapi import HTTPException
+
+from controllers.orcamentoControllers import getOrcamentoByTatuagem
 
 USER_TABLE = "usuario"
 TATTOO_TABLE = "tatuagem"
@@ -39,8 +42,18 @@ def _to_bool(value) -> bool:
     return bool(value)
 
 
-def _map_budget_detail(row: dict) -> dict:
+def _to_number(value):
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return float(value)
+    return value
+
+
+def _map_tatto_info(row: dict) -> dict:
     return {
+        "id": row.get("id_tatuagem"),
+        "usuario_id": row.get("usuario_id"),
         "nome": row.get("nome") or "",
         "email": row.get("email") or "",
         "telefone": row.get("telefone") or "",
@@ -59,6 +72,25 @@ def _map_budget_detail(row: dict) -> dict:
     }
 
 
+def _map_calculate_info(row: dict) -> dict:
+    return {
+        "id_orcamento": row.get("id_orcamento"),
+        "tatuagem": row.get("tatuagem"),
+        "usuario": row.get("usuario"),
+        "admin": row.get("admin"),
+        "tinta": _to_number(row.get("tinta")),
+        "materiais": _to_number(row.get("materiais")),
+        "area": _to_number(row.get("area")),
+        "taxa_fixa": _to_number(row.get("taxa_fixa")),
+        "valor_hora": _to_number(row.get("valor_hora")),
+        "tempo_estimado": row.get("tempo_estimado"),
+        "dificuldade": row.get("dificuldade") or "",
+        "valor_orcamento": row.get("valor_orcamento"),
+        "valor": _format_currency(row.get("valor_orcamento")),
+        "data": _format_date(row.get("created_at")),
+    }
+
+
 async def get_budget_by_id(budget_id: int):
     def _work():
         conn = _connect()
@@ -67,6 +99,8 @@ async def get_budget_by_id(budget_id: int):
             cur.execute(
                 f"""
                 SELECT
+                    t.id_tatuagem,
+                    t.usuario_id,
                     t.cliente,
                     t.descricao,
                     t.area_tatuada,
@@ -98,4 +132,10 @@ async def get_budget_by_id(budget_id: int):
     row = await asyncio.to_thread(_work)
     if row is None:
         raise HTTPException(status_code=404, detail="Orcamento nao encontrado.")
-    return _map_budget_detail(row)
+
+    orcamento = await getOrcamentoByTatuagem.get_orcamento_by_tatuagem(budget_id)
+
+    return {
+        "tatto_info": _map_tatto_info(row),
+        "calculate_info": _map_calculate_info(orcamento) if orcamento else None,
+    }

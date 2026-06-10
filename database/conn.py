@@ -44,6 +44,45 @@ ADMIN_TABLE = "User"
 
 conn = None
 
+ORCAMENTO_TABLE = "orcamento"
+
+
+def _column_exists(cur, table: str, column: str) -> bool:
+    cur.execute(
+        """
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s
+        LIMIT 1
+        """,
+        (DB_NAME, table, column),
+    )
+    return cur.fetchone() is not None
+
+
+def _ensure_orcamento_columns(cur) -> None:
+    if not _column_exists(cur, ORCAMENTO_TABLE, "created_at"):
+        cur.execute(
+            f"""
+            ALTER TABLE `{ORCAMENTO_TABLE}`
+            ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            """
+        )
+    if not _column_exists(cur, ORCAMENTO_TABLE, "active"):
+        cur.execute(
+            f"""
+            ALTER TABLE `{ORCAMENTO_TABLE}`
+            ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1
+            """
+        )
+    if not _column_exists(cur, ORCAMENTO_TABLE, "valor_orcamento"):
+        cur.execute(
+            f"""
+            ALTER TABLE `{ORCAMENTO_TABLE}`
+            ADD COLUMN valor_orcamento INT NULL
+            """
+        )
+
 
 def _bootstrap_db():
     bootstrap_conn = mysql.connector.connect(
@@ -105,6 +144,30 @@ def _bootstrap_db():
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS `orcamento` (
+                id_orcamento INT AUTO_INCREMENT PRIMARY KEY,
+                tatuagem INT NOT NULL,
+                usuario INT NOT NULL,
+                admin INT NULL,
+                tinta DECIMAL(10, 2) NULL,
+                materiais DECIMAL(10, 2) NULL,
+                area DECIMAL(10, 2) NULL,
+                taxa_fixa DECIMAL(10, 2) NULL,
+                valor_hora DECIMAL(10, 2) NULL,
+                tempo_estimado INT NULL,
+                dificuldade VARCHAR(50) NULL,
+                valor_orcamento INT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                active TINYINT(1) NOT NULL DEFAULT 1,
+                FOREIGN KEY (tatuagem) REFERENCES tatuagem(id_tatuagem),
+                FOREIGN KEY (usuario) REFERENCES usuario(id),
+                FOREIGN KEY (admin) REFERENCES User(id)
+            )
+            """
+        )
+        _ensure_orcamento_columns(cur)
         bootstrap_conn.commit()
         cur.close()
     finally:

@@ -26,8 +26,17 @@ load_dotenv()
 # Get the port from environment variable, default to 8000 if not set
 PORT = int(os.getenv("PORT", 8000))
 
-PUBLIC_ROUTES = {"/admin/login", "/status", "/token/verify", "/budget/submit", "/budget/list"}
-ADMIN_ROUTES = {"/admin/panel", "/budget"}
+PUBLIC_ROUTES = {
+    "/admin/login",
+    "/status",
+    "/token/validate",
+    "/budget/submit",
+}
+
+PROTECTED_PREFIXES = (
+    "/budget/",
+    "/orcamento",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,23 +46,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def _requires_auth(path: str) -> bool:
+    return any(path.startswith(prefix) for prefix in PROTECTED_PREFIXES)
+
+
 @app.middleware("http")
 async def verify_token_middleware(request: Request, call_next):
     path = request.url.path
     if request.method == "OPTIONS" or path in PUBLIC_ROUTES:
         return await call_next(request)
-    if path in ADMIN_ROUTES:
-        auth = request.headers.get("Authorization")
-        if not auth:
-            return JSONResponse(status_code=401, content={"detail": "Token obrigatorio"})
-        token = auth.removeprefix("Bearer ").strip()
-        try:
-            payload = await verify_token(token)
-        except Exception as exc:
-            status = getattr(exc, "status_code", 401)
-            detail = getattr(exc, "detail", "Token invalido")
-            return JSONResponse(status_code=status, content={"detail": detail})
-        request.state.user = payload
+
+    if not _requires_auth(path):
+        return await call_next(request)
+
+    auth = request.headers.get("Authorization")
+    if not auth:
+        return JSONResponse(status_code=401, content={"detail": "Token obrigatorio"})
+    token = auth.removeprefix("Bearer ").strip()
+    try:
+        payload = await verify_token(token)
+    except Exception as exc:
+        status = getattr(exc, "status_code", 401)
+        detail = getattr(exc, "detail", "Token invalido")
+        return JSONResponse(status_code=status, content={"detail": detail})
+    request.state.user = payload
     return await call_next(request)
 
 # Simple route to check if the backend is running

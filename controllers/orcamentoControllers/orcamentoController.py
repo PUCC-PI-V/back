@@ -1,9 +1,19 @@
-from database.conn import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
+from database.conn import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, ORCAMENTO_TABLE
 import mysql.connector
 import asyncio
 
 
-async def get_all_orcamentos(table="orcamento"):
+def _connect():
+    return mysql.connector.connect(
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+        port=DB_PORT,
+    )
+
+
+async def get_orcamento_by_id(id_orcamento, table=ORCAMENTO_TABLE):
     conn = await asyncio.to_thread(
         mysql.connector.connect,
         host=DB_HOST,
@@ -14,29 +24,10 @@ async def get_all_orcamentos(table="orcamento"):
     )
     try:
         cur = conn.cursor(dictionary=True)
-        cur.execute(f"SELECT * FROM {table}")
-        rows = cur.fetchall()
-        cur.close()
-        return rows
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
-
-
-async def get_orcamento_by_id(id_orcamento, table="orcamento"):
-    conn = await asyncio.to_thread(
-        mysql.connector.connect,
-        host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME or None,
-        port=DB_PORT,
-    )
-    try:
-        cur = conn.cursor(dictionary=True)
-        cur.execute(f"SELECT * FROM {table} WHERE id_orcamento = %s LIMIT 1", (id_orcamento,))
+        cur.execute(
+            f"SELECT * FROM {table} WHERE id_orcamento = %s AND active = 1 LIMIT 1",
+            (id_orcamento,),
+        )
         row = cur.fetchone()
         cur.close()
         return row
@@ -58,39 +49,46 @@ async def create_orcamento(
     valor_hora,
     tempo_estimado,
     dificuldade,
-    table="orcamento",
+    valor_orcamento,
+    table=ORCAMENTO_TABLE,
 ):
-    conn = await asyncio.to_thread(
-        mysql.connector.connect,
-        host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME or None,
-        port=DB_PORT,
-    )
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            f"INSERT INTO {table} (tatuagem, usuario, admin, tinta, materiais, area, taxa_fixa, valor_hora, tempo_estimado, dificuldade) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-            (
-                tatuagem,
-                usuario,
-                admin,
-                tinta,
-                materiais,
-                area,
-                taxa_fixa,
-                valor_hora,
-                tempo_estimado,
-                dificuldade,
-            ),
-        )
-        conn.commit()
-        last_id = cur.lastrowid
-        cur.close()
-        return {"id_orcamento": last_id}
-    finally:
+    def _work():
+        conn = _connect()
         try:
-            conn.close()
+            cur = conn.cursor()
+            cur.execute(
+                f"UPDATE {table} SET active = 0 WHERE tatuagem = %s AND active = 1",
+                (tatuagem,),
+            )
+            cur.execute(
+                f"""
+                INSERT INTO {table}
+                    (tatuagem, usuario, admin, tinta, materiais, area,
+                     taxa_fixa, valor_hora, tempo_estimado, dificuldade, valor_orcamento)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    tatuagem,
+                    usuario,
+                    admin,
+                    tinta,
+                    materiais,
+                    area,
+                    taxa_fixa,
+                    valor_hora,
+                    tempo_estimado,
+                    dificuldade,
+                    valor_orcamento,
+                ),
+            )
+            conn.commit()
+            last_id = cur.lastrowid
+            cur.close()
+            return {"id_orcamento": last_id}
         except Exception:
-            pass
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    return await asyncio.to_thread(_work)

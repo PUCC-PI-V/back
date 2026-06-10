@@ -1,6 +1,13 @@
 from datetime import datetime
 
-from database.conn import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
+from database.conn import (
+    DB_HOST,
+    DB_USER,
+    DB_PASSWORD,
+    DB_NAME,
+    DB_PORT,
+    ORCAMENTO_TABLE,
+)
 import mysql.connector
 import asyncio
 
@@ -37,10 +44,12 @@ def _format_date(value) -> str:
 def _map_budget_row(row: dict) -> dict:
     return {
         "id": row["id_tatuagem"],
+        "usuario_id": row.get("usuario_id"),
         "nome": row.get("nome") or "",
         "email": row.get("email") or "",
         "ideia": row.get("descricao") or "",
         "valor": _format_currency(row.get("estimativa_valor")),
+        "valor_orcamento": row.get("valor_orcamento"),
         "data": _format_date(row.get("created_at")),
     }
 
@@ -54,13 +63,17 @@ async def get_all_budgets():
                 f"""
                 SELECT
                     t.id_tatuagem,
+                    t.usuario_id,
                     t.descricao,
                     t.estimativa_valor,
                     t.created_at,
                     u.nome,
-                    u.email
+                    u.email,
+                    o.valor_orcamento
                 FROM {TATTOO_TABLE} t
                 LEFT JOIN {USER_TABLE} u ON u.id = t.usuario_id
+                LEFT JOIN {ORCAMENTO_TABLE} o
+                    ON o.tatuagem = t.id_tatuagem AND o.active = 1
                 ORDER BY t.created_at DESC, t.id_tatuagem DESC
                 """
             )
