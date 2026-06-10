@@ -73,11 +73,16 @@ async def submit_orcamento(request: Request):
     tempo_estimado = data.get("tempo_estimado")
     dificuldade = data.get("dificuldade")
     valor_orcamento = _parse_cents(data.get("valor_orcamento"))
+    email = str(data.get("email") or "").strip()
+    nome = str(data.get("nome") or "").strip()
 
-    if tatuagem is None or usuario is None or valor_orcamento is None:
+    if tatuagem is None or usuario is None or valor_orcamento is None or not email:
         raise HTTPException(
             status_code=400,
-            detail="Campos obrigatorios: 'tatuagem', 'usuario' e 'valor_orcamento' (centavos).",
+            detail=(
+                "Campos obrigatorios: 'tatuagem', 'usuario', 'email' "
+                "e 'valor_orcamento' (centavos)."
+            ),
         )
 
     result = await orcamentoController.create_orcamento(
@@ -92,6 +97,12 @@ async def submit_orcamento(request: Request):
         tempo_estimado,
         dificuldade,
         valor_orcamento,
+        email,
+        nome,
     )
 
-    return {"success": True, "message": "Orcamento criado", **result}
+    return {
+        "success": True,
+        "message": "Orcamento criado com sucesso.",
+        **result,
+    }

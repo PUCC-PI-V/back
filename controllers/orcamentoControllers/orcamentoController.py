@@ -2,6 +2,8 @@ from database.conn import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, ORCAM
 import mysql.connector
 import asyncio
 
+from services.emailServices.emails import orcamentoConfirmacaoEmail
+
 
 def _connect():
     return mysql.connector.connect(
@@ -50,6 +52,8 @@ async def create_orcamento(
     tempo_estimado,
     dificuldade,
     valor_orcamento,
+    email,
+    client_name="",
     table=ORCAMENTO_TABLE,
 ):
     def _work():
@@ -91,4 +95,19 @@ async def create_orcamento(
         finally:
             conn.close()
 
-    return await asyncio.to_thread(_work)
+    result = await asyncio.to_thread(_work)
+
+    email_sent = False
+    try:
+        await asyncio.to_thread(
+            orcamentoConfirmacaoEmail.send,
+            to=email,
+            client_name=client_name,
+            valor_orcamento=valor_orcamento,
+            dificuldade=dificuldade or "",
+        )
+        email_sent = True
+    except Exception as exc:
+        print(f"Falha ao enviar email de confirmacao do orcamento {result['id_orcamento']}: {exc}")
+
+    return {**result, "email_sent": email_sent}

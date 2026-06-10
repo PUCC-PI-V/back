@@ -2,7 +2,6 @@ import os
 from database.conn import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
 import mysql.connector
 import asyncio
-from fastapi import HTTPException
 from services.iaServices import iaService
 from services.emailServices.emails import budgetEmail, userBudgetThankYouEmail
 
@@ -141,6 +140,99 @@ async def _analyze_budget_with_ia(
     return await asyncio.to_thread(_work)
 
 
+async def update_tattoo_ia_result(
+    tattoo_id,
+    estimativa_valor,
+    dificuldade_ia,
+    justificativa_ia,
+):
+    def _work():
+        conn = _connect()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                f"""
+                UPDATE {TATTOO_TABLE}
+                SET estimativa_valor = %s,
+                    dificuldade_ia = %s,
+                    justificativa_ia = %s
+                WHERE id_tatuagem = %s
+                """,
+                (estimativa_valor, dificuldade_ia, justificativa_ia, tattoo_id),
+            )
+            conn.commit()
+            cur.close()
+        finally:
+            conn.close()
+
+    await asyncio.to_thread(_work)
+
+
+async def _process_budget_ia_background(
+    tattoo_id,
+    nome,
+    email,
+    cliente,
+    tamanho,
+    sombreamento,
+    colorido,
+    estilo,
+    area_tatuada,
+    regiao_especifica,
+    descricao,
+):
+    try:
+        ia_result = await _analyze_budget_with_ia(
+            cliente,
+            tamanho,
+            sombreamento,
+            colorido,
+            estilo,
+            area_tatuada,
+            regiao_especifica,
+            descricao,
+        )
+    except Exception as exc:
+        print(f"Falha ao analisar orcamento {tattoo_id} com IA: {exc}")
+        return
+
+    try:
+        await update_tattoo_ia_result(
+            tattoo_id,
+            ia_result["estimativaValor"],
+            ia_result["dificuldadeIa"],
+            ia_result["justificativaIa"],
+        )
+    except Exception as exc:
+        print(f"Falha ao salvar analise da IA do orcamento {tattoo_id}: {exc}")
+        return
+
+    form_link = f"{FRONTEND_URL}/admin/calculate/{tattoo_id}"
+
+    try:
+        await asyncio.to_thread(
+            budgetEmail.send,
+            tattoo_description=descricao,
+            form_link=form_link,
+            client_name=cliente,
+            dificuldade_ia=ia_result["dificuldadeIa"],
+            estimativa_valor=ia_result["estimativaValor"],
+            justificativa_ia=ia_result["justificativaIa"],
+        )
+    except Exception as exc:
+        print(f"Falha ao enviar email admin do orcamento {tattoo_id}: {exc}")
+
+    try:
+        await asyncio.to_thread(
+            userBudgetThankYouEmail.send,
+            to=email,
+            client_name=nome,
+            estimativa_valor=ia_result["estimativaValor"],
+        )
+    except Exception as exc:
+        print(f"Falha ao enviar email de agradecimento ao usuario {tattoo_id}: {exc}")
+
+
 async def create_budget(
     nome,
     telefone,
@@ -163,23 +255,6 @@ async def create_budget(
     else:
         usuario_id = existing_user["id"]
 
-    try:
-        ia_result = await _analyze_budget_with_ia(
-            cliente,
-            tamanho,
-            sombreamento,
-            colorido,
-            estilo,
-            area_tatuada,
-            regiao_especifica,
-            descricao,
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Falha ao analisar orcamento com IA: {exc}",
-        ) from exc
-
     tattoo_id = await create_tattoo(
         usuario_id,
         cliente,
@@ -190,49 +265,34 @@ async def create_budget(
         area_tatuada,
         regiao_especifica,
         descricao,
-        ia_result["estimativaValor"],
-        ia_result["dificuldadeIa"],
-        ia_result["justificativaIa"],
+        None,
+        None,
+        None,
     )
 
-    form_link = f"{FRONTEND_URL}/admin/calculate/{tattoo_id}"
-
-    email_sent = False
-    user_email_sent = False
-
-    try:
-        await asyncio.to_thread(
-            budgetEmail.send,
-            tattoo_description=descricao,
-            form_link=form_link,
-            client_name=cliente,
-            dificuldade_ia=ia_result["dificuldadeIa"],
-            estimativa_valor=ia_result["estimativaValor"],
-            justificativa_ia=ia_result["justificativaIa"],
+    asyncio.create_task(
+        _process_budget_ia_background(
+            tattoo_id,
+            nome,
+            email,
+            cliente,
+            tamanho,
+            sombreamento,
+            colorido,
+            estilo,
+            area_tatuada,
+            regiao_especifica,
+            descricao,
         )
-        email_sent = True
-    except Exception as exc:
-        print(f"Falha ao enviar email admin do orcamento {tattoo_id}: {exc}")
-
-    try:
-        await asyncio.to_thread(
-            userBudgetThankYouEmail.send,
-            to=email,
-            client_name=nome,
-            estimativa_valor=ia_result["estimativaValor"],
-        )
-        user_email_sent = True
-    except Exception as exc:
-        print(f"Falha ao enviar email de agradecimento ao usuario {tattoo_id}: {exc}")
+    )
 
     return {
         "created_user": created_user,
         "cliente": cliente,
         "tattoo_id": tattoo_id,
-        "estimativaValor": ia_result["estimativaValor"],
-        "dificuldadeIa": ia_result["dificuldadeIa"],
-        "justificativaIa": ia_result["justificativaIa"],
-        "form_link": form_link,
-        "email_sent": email_sent,
-        "user_email_sent": user_email_sent,
+        "estimativaValor": None,
+        "dificuldadeIa": None,
+        "justificativaIa": None,
+        "ia_processing": True,
+        "form_link": f"{FRONTEND_URL}/admin/calculate/{tattoo_id}",
     }

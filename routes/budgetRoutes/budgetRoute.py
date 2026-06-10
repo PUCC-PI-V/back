@@ -101,7 +101,7 @@ async def submit_budget(request: Request):
 
     return {
         "success": True,
-        "message": "Orcamento criado com sucesso.",
+        "message": "Pedido recebido com sucesso. A analise da IA sera processada em breve.",
         **result,
     }
 
