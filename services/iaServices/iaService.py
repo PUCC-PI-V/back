@@ -35,6 +35,7 @@ SYSTEM_PROMPT_CHAT = (
     "2. Se faltar informacao ou a pergunta nao for sobre tatuagem, responda exatamente: Nao sei.\n"
     "3. Responda em portugues, de forma curta e objetiva.\n"
     "4. Nao invente precos, niveis ou detalhes que nao estejam no contexto."
+    "5. Deve mandar somente a resposta, então nada de Resposta: ou coisa do tipo"
 )
 
 SYSTEM_PROMPT_BUDGET = (
@@ -138,7 +139,7 @@ def truncate_context(context, tokenizer, max_tokens=MAX_CONTEXT_TOKENS):
     return tokenizer.decode(context_tokens, skip_special_tokens=True)
 
 
-def build_prompt(context, user_input, mode="chat"):
+def build_prompt(rag_context, user_input, mode="chat", contexto=None):
     system_prompt = SYSTEM_PROMPT_BUDGET if mode == "budget" else SYSTEM_PROMPT_CHAT
     user_suffix = (
         "Com base no contexto, estime a dificuldade e o preco."
@@ -146,16 +147,15 @@ def build_prompt(context, user_input, mode="chat"):
         else "Responda com base no contexto."
     )
 
+    user_parts = [f"Contexto:\n{rag_context}"]
+    if contexto:
+        user_parts.append(f"Descricao da tatuagem:\n{contexto}")
+
+    user_parts.append(f"Pergunta: {user_input}\n{user_suffix}")
+
     return [
         {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": (
-                f"Contexto:\n{context}\n\n"
-                f"Pergunta: {user_input}\n"
-                f"{user_suffix}"
-            ),
-        },
+        {"role": "user", "content": "\n\n".join(user_parts)},
     ]
 
 
@@ -166,9 +166,15 @@ def build_response(
     model,
     mode="chat",
     max_new_tokens=MAX_NEW_TOKENS,
+    contexto=None,
 ):
     truncated_context = truncate_context(context, tokenizer)
-    messages = build_prompt(truncated_context, question, mode=mode)
+    messages = build_prompt(
+        truncated_context,
+        question,
+        mode=mode,
+        contexto=contexto,
+    )
 
     prompt_text = tokenizer.apply_chat_template(
         messages,
@@ -212,19 +218,21 @@ def rag_chain(
     n_results=QUERY,
     mode="chat",
     max_new_tokens=MAX_NEW_TOKENS,
+    contexto=None,
 ):
     results = collection.query(
         query_texts=[question],
         n_results=n_results,
     )
-    context = "\n\n".join(results["documents"][0]) if results["documents"] else ""
+    rag_context = "\n\n".join(results["documents"][0]) if results["documents"] else ""
     return build_response(
         question,
-        context,
+        rag_context,
         tokenizer,
         model,
         mode=mode,
         max_new_tokens=max_new_tokens,
+        contexto=contexto,
     )
 
 
@@ -374,7 +382,6 @@ def analyze_budget(
     regiao_especifica,
     descricao,
 ) -> dict:
-    """RAG completo: recupera contexto no Chroma e gera resposta com o Llama."""
     question = build_budget_question(
         cliente,
         tamanho,
